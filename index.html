@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sentiment Analysis</title>
+  <link rel="stylesheet" href="../static/style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>🔍 Sentiment Analysis</h1>
+    <p class="subtitle">Type a comment to see if it is positive or negative</p>
+
+    <textarea id="comment" placeholder="Type your comment here..."></textarea>
+    <button onclick="analyzeComment()">Analyze Comment</button>
+
+    <div id="result-box" class="hidden">
+      <p id="result"></p>
+    </div>
+  </div>
+
+  <script>
+    async function analyzeComment() {
+      let comment = document.getElementById("comment").value;
+      if (!comment.trim()) {
+        document.getElementById("result-box").classList.remove("hidden");
+        document.getElementById("result").innerText = "⚠️ Please enter a comment before analyzing";
+        return;
+      }
+
+      let response = await fetch("/predict", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({comment: comment})
+      });
+
+      let result = await response.json();
+      document.getElementById("result-box").classList.remove("hidden");
+      document.getElementById("result").innerText = "🔔 Result: " + result.prediction;
+    }
+  </script>
+</body>
+</html>
