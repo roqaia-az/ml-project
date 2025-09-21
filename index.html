@@ -1,42 +1,81 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Sentiment Analysis</title>
-  <link rel="stylesheet" href="../static/style.css">
+    <meta charset="UTF-8">
+    <title>Sentiment Prediction</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 50px;
+            background-color: #f9f9f9;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        form {
+            max-width: 500px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            font-size: 16px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        #result {
+            max-width: 500px;
+            margin: 20px auto;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+        }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <h1>🔍 Sentiment Analysis</h1>
-    <p class="subtitle">Type a comment to see if it is positive or negative</p>
+    <h1>Sentiment Analysis</h1>
 
-    <textarea id="comment" placeholder="Type your comment here..."></textarea>
-    <button onclick="analyzeComment()">Analyze Comment</button>
+    <form id="predictForm">
+        <input type="text" id="comment" placeholder="اكتب تعليقك هنا" required>
+        <button type="submit">Predict Sentiment</button>
+    </form>
 
-    <div id="result-box" class="hidden">
-      <p id="result"></p>
-    </div>
-  </div>
+    <div id="result"></div>
 
-  <script>
-    async function analyzeComment() {
-      let comment = document.getElementById("comment").value;
-      if (!comment.trim()) {
-        document.getElementById("result-box").classList.remove("hidden");
-        document.getElementById("result").innerText = "⚠️ Please enter a comment before analyzing";
-        return;
-      }
+    <script>
+        document.getElementById('predictForm').onsubmit = async (e) => {
+            e.preventDefault();
 
-      let response = await fetch("/predict", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({comment: comment})
-      });
+            const comment = document.getElementById('comment').value;
 
-      let result = await response.json();
-      document.getElementById("result-box").classList.remove("hidden");
-      document.getElementById("result").innerText = "🔔 Result: " + result.prediction;
-    }
-  </script>
+            const response = await fetch('/predict', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({features: [comment]})
+            });
+
+            const result = await response.json();
+
+            if(result.prediction){
+                // عرض النتيجة مباشرة
+                document.getElementById('result').innerText = "Sentiment: " + result.prediction;
+            } else {
+                document.getElementById('result').innerText = "Error: " + result.error;
+            }
+        };
+    </script>
 </body>
 </html>

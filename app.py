@@ -1,48 +1,53 @@
 from flask import Flask, request, jsonify, render_template
-import pickle
+import joblib
+import logging
 import os
 
+# إعداد Flask
 app = Flask(__name__)
 
-# --------- التحميل المؤقت للموديل ----------
-# حاليًا القيمة ثابتة، لاحقًا استبدلي ملفات الموديل هنا
-MODEL_PATH = "model.pkl"
-VECTORIZER_PATH = "vectorizer.pkl"
+# إعداد logging
+logging.basicConfig(filename='app.log', level=logging.INFO, 
+                    format='%(asctime)s %(levelname)s %(message)s')
 
-model = None
-vectorizer = None
+# تحميل الموديل والـ vectorizer
+try:
+    lr_model = joblib.load("models/logistic_final.joblib")
+    vectorizer = joblib.load("models/vectorizer.joblib")
+    logging.info("Model and vectorizer loaded successfully.")
+except Exception as e:
+    logging.error(f"Error loading model/vectorizer: {e}")
+    lr_model, vectorizer = None, None
 
-if os.path.exists(MODEL_PATH) and os.path.exists(VECTORIZER_PATH):
-    model = pickle.load(open(MODEL_PATH, "rb"))
-    vectorizer = pickle.load(open(VECTORIZER_PATH, "rb"))
-    print("✅ Model and vectorizer loaded successfully.")
-else:
-    print("⚠️ Model or vectorizer not found. Using dummy prediction.")
-
-# --------- الصفحة الرئيسية ----------
-@app.route("/")
+# صفحة البداية
+@app.route('/')
 def home():
-    return render_template("index.html")
+    return render_template('index.html')
 
-# --------- API Prediction ----------
-@app.route("/predict", methods=["POST"])
+# RESTful endpoint للتنبؤ
+@app.route('/predict', methods=['POST'])
 def predict():
-    data = request.json
-    comment = data.get("comment", "").strip()
+    if lr_model is None or vectorizer is None:
+        return jsonify({'error': 'Model or vectorizer not loaded'}), 500
 
-    if not comment:
-        return jsonify({"prediction": "⚠️ Please enter a comment"})
+    try:
+        data = request.json
+        if 'features' not in data or len(data['features']) == 0:
+            return jsonify({'error': 'Missing comment in request'}), 400
 
-    if model and vectorizer:
-        # prediction حقيقي
-        X = vectorizer.transform([comment])
-        prediction = model.predict(X)[0]
-    else:
-        # prediction مؤقت
-        prediction = "Positive"
+        comment = data['features'][0]  # نص التعليق
+        features_array = vectorizer.transform([comment])  # تحويل النص لأرقام
 
-    return jsonify({"prediction": prediction})
+        prediction = lr_model.predict(features_array)
 
-# --------- تشغيل السيرفر ----------
-if __name__ == "__main__":
+        sentiment = "Positive" if prediction[0] == 1 else "Negative"
+
+        return jsonify({'prediction': sentiment})
+
+    except Exception as e:
+        logging.error(f"Prediction error: {e}")
+        return jsonify({'error': str(e)}), 400
+
+# تشغيل التطبيق
+if __name__ == '__main__':
     app.run(debug=True)
